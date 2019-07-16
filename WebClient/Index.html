@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<!-- base: https://getbootstrap.com/docs/4.0/examples/dashboard/# -->
+<html lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=0.7, shrink-to-fit=no">
+        <title>MQTT Dashboard</title>
+        
+        <script src="./Dashboard/jquery-3.4.1.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="./Dashboard/bootstrap2-toggle.min.css"/>
+        <script src="./Dashboard/bootstrap2-toggle.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="./Dashboard/bootstrap2.min.css"/>
+        <script src="./Dashboard/bootstrap2.min.js"></script>
+        <script src="./Dashboard/mqtt.js"></script>
+        <link rel="stylesheet" type="text/css" href="./Dashboard/dashboard.css"/>
+        <script src="./Dashboard/dashboard.js"></script>
+        
+    </head>
+    
+    <body>
+    
+    <div id="entire_body" class="container-fluid">
+        
+          <main role="main"><div style="position: absolute; left: 0px; top: 0px; right: 0px; bottom: 0px; overflow: hidden; pointer-events: none; visibility: hidden; z-index: -1;"><div style="position:absolute;left:0;top:0;right:0;bottom:0;overflow:hidden;pointer-events:none;visibility:hidden;z-index:-1;"><div style="position:absolute;width:1000000px;height:1000000px;left:0;top:0"></div></div><div style="position:absolute;left:0;top:0;right:0;bottom:0;overflow:hidden;pointer-events:none;visibility:hidden;z-index:-1;"><div style="position:absolute;width:200%;height:200%;left:0; top:0"></div></div></div>
+          <div>
+                <h2>MQTT Dashboard</h2>
+          </div>
+
+          <h2>Monitoramento</h2>
+          <div class="table-responsive">
+            <table class="table table-striped table-sm dashtable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>ID </th>
+                  <th>Lâmpadas</th>
+                  <th>Ar Condicionado</th>
+                  <th>Presença?</th>
+                  <th>Automático?</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span id="tr1-n">1</span></td>
+                  <td><span id="tr1-name">ECP-LAB1</span></td>
+                  <td><input disabled id="tr1-light" class="btn" type="checkbox" data-toggle="toggle" data-onstyle="success" data-offstyle="danger"></td>
+                  <td><input disabled id="tr1-air" class="btn" type="checkbox" data-toggle="toggle" data-onstyle="success" data-offstyle="danger"></td>
+                  <td><span id="tr1-pir">Sim</span></td>
+                  <td><input disabled id="tr1-automatic" class="btn" type="checkbox" data-toggle="toggle" data-onstyle="success" data-offstyle="danger"></td>
+                </tr>
+                <!--
+                <tr>
+                  <td><span id="tr2-n">2</span></td>
+                  <td><span id="tr2-name">ECP-LAB2</span></td>
+                  <td><input disabled id="tr2-light" class="btn" type="checkbox" data-toggle="toggle" data-onstyle="success" data-offstyle="danger"></td>
+                  <td><input disabled id="tr2-air" class="btn" type="checkbox" data-toggle="toggle" data-onstyle="success" data-offstyle="danger"></td>
+                  <td><span id="tr2-pir">Não</span></td>
+                  <td><input disabled id="tr2-automatic" class="btn" type="checkbox" data-toggle="toggle" data-onstyle="success" data-offstyle="danger"></td>
+                </tr>
+                -->
+              </tbody>
+            </table>
+          </div>
+        </main>
+    </div>
+    
+    </body>
+</html>
