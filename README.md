@@ -1,2 +1,2 @@
-# Monitoramento com o MQTT
-Monitoramento e controle de uma dependência utilizando o ESP8266 e MQTT. Trabalho da disciplina de Sistemas Distribuídos.
+# Monitoramento com o ESP8266 e MQTT
+Trabalho da disciplina de Sistemas Distribuídos do curso de Engenharia da Computação - UFMA.
