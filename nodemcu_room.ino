@@ -1,59 +1,58 @@
 #include "ESP8266WiFi.h"
 #include "PubSubClient.h"
 
-// WPA2 AUTHENTICATION METHOD
+#define UNIQUE_NAME "ECP-LAB1" // Hostname, must be unique
+
+const char* BROKER = "broker.hivemq.com";
+const int PORT = 1883;
+const char* CLIENT_NAME = UNIQUE_NAME;
+const char* CONTROL_TOPIC = "CONTROL/" UNIQUE_NAME; // Receive topic
+const char* DATA_TOPIC = "MASTER/DATA"; // Send topic
+
+// Choose a valid WPA2 authentication method
 #define PERSONAL
 
+// Authentication method = WPA2 Personal
+#ifdef PERSONAL
+const char* WIFI_SSID = "REDE";
+const char* WIFI_PASSWORD = "REDEREDE";
+#endif
+
+// Authentication method = WPA2 Enterprise
 #ifdef ENTERPRISE
+static const char* WIFI_SSID = "ssid";
+static const char* WIFI_USERNAME = "username";
+static const char* WIFI_PASSWORD = "password";
 extern "C" {
 #include "user_interface.h"
 #include "wpa2_enterprise.h"
 }
 #endif
 
-#define UNIQUE_NAME "ECP-LAB1"
-
-const char* BROKER = "iot.eclipse.org";
-const int PORT = 1883;
-const char* CLIENT_NAME = UNIQUE_NAME;
-const char* CONTROL_TOPIC = "CONTROL/" UNIQUE_NAME;
-const char* DATA_TOPIC = "MASTER/DATA";
-
 WiFiClient esp8266_client;
 PubSubClient client(esp8266_client);
 char client_id = '#';
 
-// WPA2 Personal
-#ifdef PERSONAL
-const char* WIFI_SSID = "REDE";
-const char* WIFI_PASSWORD = "REDEREDE";
-#endif
-
-// WPA2 Enterprise
-#ifdef ENTERPRISE
-static const char* WIFI_SSID = "UFMA";
-static const char* WIFI_USERNAME = "luis.soares";
-static const char* WIFI_PASSWORD = "password";
-#endif
-
+// Pins and states
 const byte LIGHT_PIN = 16;
+byte light_state = LOW;
+
 const byte AIR_PIN = 5;
+byte air_state = LOW;
+
 const byte PIR_PIN = 4;
 const int PIR_TIMEOUT = 10;
-
-byte state;
-byte automatic = LOW;
-byte light_state = LOW;
-byte air_state = LOW;
 byte pir_state = LOW;
 long pir_counter = 0;
 
+byte automatic = LOW;
+
 void connect2wifi () {
-  #ifdef PERSONAL
+  #if defined(PERSONAL)
     WiFi.mode(WIFI_STA);
     WiFi.hostname(CLIENT_NAME);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  #elif ENTERPRISE
+  #elif defined(ENTERPRISE)
     struct station_config wifi_config;
     wifi_set_opmode(STATION_MODE);
     memset(&wifi_config, 0, sizeof(wifi_config));
@@ -69,7 +68,6 @@ void connect2wifi () {
   #else
     return;
   #endif
-
   Serial.print("Connecting to ");
   Serial.print(WIFI_SSID);
   while (!WiFi.isConnected()) {
@@ -91,8 +89,8 @@ void connect2broker () {
     if (client.connect(CLIENT_NAME)) {
       Serial.print("Connected. Control topic: ");
       Serial.println(CONTROL_TOPIC);
-      client.subscribe(CONTROL_TOPIC);
-      client.publish(DATA_TOPIC, "Hello");
+      client.subscribe(CONTROL_TOPIC, 1); // Receive from
+      client.publish(DATA_TOPIC, "#"); // Send to, Hello message
     }
     else {
       Serial.println("Failed. Trying again in 5s.");
@@ -103,7 +101,7 @@ void connect2broker () {
 }
 
 void callback (char* topic, byte* payload, unsigned int len) {
-  ((char*) payload)[len] = '\0';
+  *((char*) payload+len) = '\0';
   Serial.println("");
   Serial.print(topic);
   Serial.print(":");
@@ -111,67 +109,85 @@ void callback (char* topic, byte* payload, unsigned int len) {
   process_command(payload, len);
 }
 
+byte digital_set (char option, byte* state, byte pin) {
+  if (option == '0') {
+    *state = LOW;
+    digitalWrite(pin, LOW);
+  }
+  else if (option == '1') {
+    *state = HIGH;
+    digitalWrite(pin, HIGH);
+  }
+  else {
+    return 1; // Failure
+  }
+  return 0; // OK
+}
+
 void process_command (byte* payload, unsigned int len) {
-  char id = (len > 0)?(char) payload[0]:'#';
-  char command = (len > 1)?(char) payload[1]:'#';
-  char device = (len > 2)?(char) payload[2]:'#';
-  char option = (len > 3)?(char) payload[3]:'#';
-  char data[5] = {id, command, device, option};
-  switch (command) {
-    case 'G':
-      if (device == 'L') // LIGHT
-        data[3] = light_state?'1':'0';
-      else if (device == 'A') // AIR
-        data[3] = air_state?'1':'0';
-      else if (device == 'P') // PIR
-        data[3] = pir_state?'1':'0';
-      else if (device == 'S') // STATION
-        data[3] = automatic?'1':'0';
-      else // ERROR
-        data[2] = '#';
-    break;
-    case 'S':
-      if (device == 'L') { // LIGHT
-        if (option == '0') {
-          light_state = LOW;
-          digitalWrite(LIGHT_PIN, LOW);
-        }
-        else if (option == '1') {
-          light_state = HIGH;
-          digitalWrite(LIGHT_PIN, HIGH);
+  char id = (len > 0)?*((char*) payload):'#';
+  byte cpos = 1; // Cursor's pos
+  String answer = String(id);
+  while (len > cpos) {
+    char device = (len > cpos)?*((char*) payload+cpos):'#';
+    char command = (len > cpos+1)?*((char*) payload+cpos+1):'#';
+    byte increment = 2; // Shift cpos to
+    switch (device) {
+      case 'L': case 'l': // Light
+        if (command == 'G' || command == 'g')
+          answer = answer+device+command+(light_state?'1':'0');
+        else if (command == 'S' || command == 's') {
+          char option = (len > cpos+2)?*((char*) payload+cpos+2):'#';
+          byte code = digital_set(option, &light_state, LIGHT_PIN);
+          answer = answer+device+command+(code?'#':option);
+          increment += 1;
         }
         else
-          data[3] = '#';
-      }
-      else if (device == 'A') { // AIR
-        if (option == '0') {
-          air_state = LOW;
-          digitalWrite(AIR_PIN, LOW);
+          answer = answer+device+'#';
+      break;
+      case 'A': case 'a': // Air
+        if (command == 'G' || command == 'g')
+          answer = answer+device+command+(air_state?'1':'0');
+        else if (command == 'S' || command == 's') {
+          char option = (len > cpos+2)?*((char*) payload+cpos+2):'#';
+          byte code = digital_set(option, &air_state, AIR_PIN);
+          answer = answer+device+command+(code?'#':option);
+          increment += 1;
         }
-        else if (option == '1') {
-          air_state = HIGH;
-          digitalWrite(AIR_PIN, HIGH);
+        else
+          answer = answer+device+'#';
+      break;
+      case 'P': case 'p': // PIR sensor
+        if (command == 'G' || command == 'g')
+          answer = answer+device+command+(pir_state?'1':'0');
+        else
+          answer = answer+device+'#';
+      break;
+      case 'U': case 'u': // Automatic
+        if (command == 'G' || command == 'g')
+          answer = answer+device+command+(automatic?'1':'0');
+        else if (command == 'S' || command == 's') {
+          char option = (len > cpos+2)?*((char*) payload+cpos+2):'#';
+          if (option == '0')
+              automatic = LOW;
+          else if (option == '1')
+            automatic = HIGH;
+          else
+            option = '#';
+          answer = answer+device+command+option;
+          increment += 1;
         }
-        else // ERROR
-          data[3] = '#';
-      }
-      else if (device == 'S') { // STATION
-        if (option == '0')
-          automatic = LOW;
-        else if (option == '1')
-          automatic = HIGH;
-        else // ERROR
-          data[3] = '#';
-      }
-      else // ERROR
-        data[2] = '#';
-    break;
-    default: // ERROR
-      data[1] = '#'; 
-    break;
+        else
+          answer = answer+device+'#';
+      break;
+      default:
+        answer = answer+'#';
+      break;
+    }
+    cpos += increment;
   }
   client_id = id;
-  client.publish(DATA_TOPIC, data);
+  client.publish(DATA_TOPIC, answer.c_str());
   delay(500);
 }
 
