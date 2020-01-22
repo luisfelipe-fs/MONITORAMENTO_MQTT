@@ -1,2 +1,2 @@
-# Monitoramento com o ESP8266 e MQTT
-Trabalho da disciplina de Sistemas Distribuídos do curso de Engenharia da Computação - UFMA.
+# Monitoramento e Controle com o ESP8266 e MQTT
+Implementação de um sistema de monitoramento e controle online de uma dependência utilizando o microcontrolador ESP8266 e o protocolo MQTT.
